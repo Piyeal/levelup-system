@@ -1,0 +1,90 @@
+// Level Up System — database schema
+// Postgres + Prisma. Run `npm run db:push` after setting DATABASE_URL.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  player       Player?
+}
+
+model Player {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  username           String   @default("Player")
+  totalXp            Int      @default(0)
+  streak             Int      @default(0)
+  bestStreak         Int      @default(0)
+  totalCompleted     Int      @default(0)
+  lastCompletionDate String?  // "YYYY-MM-DD"
+  lastPenaltyCheck   String?  // "YYYY-MM-DD"
+  proteinGoal        Int      @default(150)
+  gymGoal            Int      @default(4)
+  counters           Json     @default("{}")
+
+  customTemplates QuestTemplate[]
+  quests          QuestInstance[]
+  achievements    AchievementUnlock[]
+  logs            ActivityLog[]
+
+  createdAt DateTime @default(now())
+}
+
+model QuestTemplate {
+  id         String @id @default(cuid())
+  playerId   String
+  player     Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  title      String
+  category   String
+  difficulty String
+
+  @@index([playerId])
+}
+
+model QuestInstance {
+  id         String  @id @default(cuid())
+  playerId   String
+  player     Player  @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  date       String  // "YYYY-MM-DD"
+  title      String
+  category   String
+  difficulty String
+  xp         Int
+  done       Boolean @default(false)
+
+  @@index([playerId, date])
+}
+
+model AchievementUnlock {
+  id            String   @id @default(cuid())
+  playerId      String
+  player        Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  achievementId String
+  unlockedAt    DateTime @default(now())
+
+  @@unique([playerId, achievementId])
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  playerId  String
+  player    Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  date      String
+  text      String
+  xp        Int
+  createdAt DateTime @default(now())
+
+  @@index([playerId, createdAt])
+}
